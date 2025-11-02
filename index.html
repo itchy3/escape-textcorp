@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Escape from TextCorp</title>
+<meta name="description" content="한 물건으로 감옥섬을 탈출하라. 짧은 텍스트 어드벤처.">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,"Noto Sans KR";background:#0d1019;color:#e4e8f1;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+.container{width:100%;max-width:700px;padding:20px}
+.log{background:#111829;padding:20px;height:400px;overflow:auto;border-radius:10px}
+.input-box{display:flex;gap:10px;margin-top:10px}
+input{flex:1;padding:10px;border-radius:8px;border:1px solid #30364a;background:#1b2138;color:white}
+button{padding:10px 14px;border:0;border-radius:8px;background:#3a5bea;color:white;cursor:pointer}
+button:hover{background:#5775f6}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Escape from TextCorp</h1>
+  <div class="log" id="log"></div>
+  <div class="input-box">
+    <input id="input" type="text" placeholder="예: 손전등" />
+    <button id="send">보내기</button>
+  </div>
+</div>
+<script>
+const logEl = document.getElementById('log');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+let history = [];
+
+function append(msg, who='game'){
+  const div = document.createElement('div');
+  div.innerHTML = who==='player' ? `<b>당신:</b> ${msg}` : `<b>AI:</b> ${msg}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function sendMessage(){
+  const msg = inputEl.value.trim();
+  if(!msg) return;
+  append(msg,'player');
+  inputEl.value = '';
+  const res = await fetch('/api/chat', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:msg, history})
+  });
+  const data = await res.json();
+  append(data.reply);
+  history.push({role:'user', content:msg});
+  history.push({role:'assistant', content:data.reply});
+}
+
+sendBtn.onclick = sendMessage;
+inputEl.addEventListener('keydown', e=>{if(e.key==='Enter') sendMessage()});
+append("당신은 감옥섬에 갇혔습니다. 단 하나의 물건만 지니고 있습니다. 무엇입니까?");
+</script>
+</body>
+</html>
