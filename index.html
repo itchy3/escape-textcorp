@@ -7,10 +7,6 @@
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
 
-      * {
-        box-sizing: border-box;
-      }
-
       body {
         background: radial-gradient(circle at center, #0c0f14 0%, #000000 100%);
         color: #b0f0ff;
@@ -20,7 +16,6 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: flex-start;
         padding: 40px 20px;
       }
 
@@ -32,7 +27,6 @@
         margin-bottom: 10px;
       }
 
-      /* 🩸 스탯 패널 */
       #statsPanel {
         border: 1px solid #6efaff55;
         background: rgba(0, 20, 30, 0.4);
@@ -44,12 +38,37 @@
         max-width: 700px;
         font-family: "Share Tech Mono", monospace;
         display: flex;
-        justify-content: space-around;
+        flex-direction: column;
+        gap: 5px;
         text-shadow: 0 0 5px #6efaff33;
       }
 
-      #statsPanel span {
-        color: #fff;
+      .barContainer {
+        width: 100%;
+        background-color: #222;
+        border-radius: 4px;
+        height: 12px;
+        overflow: hidden;
+      }
+
+      .bar {
+        height: 100%;
+        transition: width 0.4s ease, background-color 0.4s ease;
+      }
+
+      #hpBar {
+        background-color: #ff4444;
+        width: 100%;
+      }
+
+      #hungerBar {
+        background-color: #ffcc44;
+        width: 100%;
+      }
+
+      #customBar {
+        background-color: #00ff99;
+        width: 100%;
       }
 
       #chat {
@@ -64,15 +83,6 @@
         font-size: 15px;
         line-height: 1.5;
         box-shadow: 0 0 20px #00ffff22;
-      }
-
-      #chat::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      #chat::-webkit-scrollbar-thumb {
-        background-color: #6efaff44;
-        border-radius: 4px;
       }
 
       #inputArea {
@@ -91,11 +101,6 @@
         border-radius: 5px;
         padding: 10px;
         font-size: 16px;
-        outline: none;
-      }
-
-      input::placeholder {
-        color: #6efaff44;
       }
 
       button {
@@ -114,12 +119,10 @@
         box-shadow: 0 0 10px #6efaff44;
       }
 
-      .player {
-        color: #ffffff;
-      }
-
-      .ai {
-        color: #6efaff;
+      footer {
+        margin-top: 15px;
+        font-size: 13px;
+        color: #6efaff55;
       }
 
       .fadeIn {
@@ -137,30 +140,28 @@
           transform: translateY(0);
         }
       }
-
-      footer {
-        margin-top: 20px;
-        font-size: 13px;
-        color: #6efaff55;
-      }
     </style>
   </head>
   <body>
     <h1>🧠 ESCAPE FROM TEXTCORP</h1>
 
-    <!-- 🩸 스탯 패널 -->
     <div id="statsPanel">
-      <p>❤️ 체력: <span id="hp">100</span></p>
-      <p>🍞 허기: <span id="hunger">100</span></p>
-      <p>🧭 탈출상황: <span id="escape">0%</span></p>
+      <div>❤️ 체력: <span id="hpVal">100</span></div>
+      <div class="barContainer"><div id="hpBar" class="bar"></div></div>
+
+      <div>🍞 허기: <span id="hungerVal">100</span></div>
+      <div class="barContainer"><div id="hungerBar" class="bar"></div></div>
+
+      <div>🧭 탈출상황: <span id="escapeVal">0%</span></div>
+
+      <div>🔮 맞춤스탯: <span id="customVal">100</span></div>
+      <div class="barContainer"><div id="customBar" class="bar"></div></div>
     </div>
 
-    <!-- 📜 채팅 -->
     <div id="chat" class="fadeIn">
       <p>게임을 시작하려면 <span style="color:#6efaff">"시작"</span>을 입력하세요.</p>
     </div>
 
-    <!-- ⌨️ 입력 -->
     <div id="inputArea">
       <input id="input" placeholder="입력..." />
       <button id="send">보내기</button>
@@ -173,10 +174,14 @@
       const input = document.getElementById("input");
       const send = document.getElementById("send");
 
-      // 🎮 스탯 요소
-      const hpEl = document.getElementById("hp");
-      const hungerEl = document.getElementById("hunger");
-      const escapeEl = document.getElementById("escape");
+      const hpVal = document.getElementById("hpVal");
+      const hungerVal = document.getElementById("hungerVal");
+      const escapeVal = document.getElementById("escapeVal");
+      const customVal = document.getElementById("customVal");
+
+      const hpBar = document.getElementById("hpBar");
+      const hungerBar = document.getElementById("hungerBar");
+      const customBar = document.getElementById("customBar");
 
       let history = [];
 
@@ -197,10 +202,8 @@
           const reply = data.reply ?? "(⚠️ 응답 없음)";
           appendMessage("🤖 AI", reply, "ai");
 
-          // 🎯 스탯 갱신
-          updateStats(data.stats);
+          if (data.hidden) handleHiddenCode(data.hidden);
 
-          // 대화 히스토리 저장
           history.push({ role: "user", content: text });
           history.push({ role: "assistant", content: reply });
         } catch (err) {
@@ -216,12 +219,38 @@
         chatDiv.scrollTop = chatDiv.scrollHeight;
       }
 
-      function updateStats(stats) {
-        if (!stats) return;
-        if (stats.체력 !== undefined) hpEl.textContent = stats.체력;
-        if (stats.허기 !== undefined) hungerEl.textContent = stats.허기;
-        if (stats.탈출상황 !== undefined)
-          escapeEl.textContent = stats.탈출상황 + "%";
+      // 🧩 hidden 명령 처리
+      function handleHiddenCode(hidden) {
+        if (hidden.hp !== undefined) updateBar("hp", hidden.hp);
+        if (hidden.hunger !== undefined) updateBar("hunger", hidden.hunger);
+        if (hidden.escape !== undefined)
+          escapeVal.textContent = hidden.escape + "%";
+        if (hidden.custom !== undefined) updateBar("custom", hidden.custom);
+      }
+
+      // 체력/허기/맞춤스탯 바 업데이트
+      function updateBar(type, value) {
+        const bar = { hp: hpBar, hunger: hungerBar, custom: customBar }[type];
+        const label = {
+          hp: hpVal,
+          hunger: hungerVal,
+          custom: customVal
+        }[type];
+
+        let current = parseInt(label.textContent);
+        let newValue = Math.max(0, Math.min(current + value, 100));
+
+        label.textContent = newValue;
+        bar.style.width = newValue + "%";
+
+        // 색상 유지
+        if (type === "hp") bar.style.backgroundColor = "#ff4444";
+        if (type === "hunger") bar.style.backgroundColor = "#ffcc44";
+        if (type === "custom") bar.style.backgroundColor = "#00ff99";
+
+        // 시각 피드백 (반짝임)
+        bar.style.boxShadow = "0 0 10px #fff";
+        setTimeout(() => (bar.style.boxShadow = "none"), 300);
       }
 
       send.addEventListener("click", sendMessage);
