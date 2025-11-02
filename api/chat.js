@@ -1,22 +1,6 @@
 import OpenAI from "openai";
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: "Missing API key" });
-      return;
-    }
-
-    const client = new OpenAI({ apiKey });
-    const { message, history = [] } = req.body;
-
-    const SYSTEM_PROMPT = `
+const SYSTEM_PROMPT = `
 ============================================================
 🎮 ESCAPE FROM TEXTCORP v30
 SYSTEM PROMPT / GAME MASTER STANDARDIZED OUTPUT FORMAT
@@ -61,7 +45,23 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
 ============================================================
 `;
 
-    const completion = await client.chat.completions.create({
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+      return;
+    }
+
+    const client = new OpenAI({ apiKey });
+    const { message, history = [] } = req.body;
+
+    const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -69,19 +69,15 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
         { role: "user", content: message }
       ],
       temperature: 0.9,
-      max_tokens: 1200
+      max_tokens: 1500
     });
 
-    // ✅ 안전하게 응답 읽기
-    const choice = completion.choices && completion.choices[0];
-    const reply =
-      choice && choice.message && choice.message.content
-        ? choice.message.content
-        : "(AI가 응답을 보내지 않았습니다)";
-
+    const reply = response?.choices?.[0]?.message?.content || "AI 응답 없음";
+    console.log("✅ AI Reply:", reply);
     res.status(200).json({ reply });
-  } catch (error) {
-    console.error("❌ 서버 오류:", error);
-    res.status(500).json({ error: error.message });
+
+  } catch (err) {
+    console.error("❌ Error:", err);
+    res.status(500).json({ error: err.message });
   }
 }
