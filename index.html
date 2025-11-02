@@ -29,6 +29,27 @@
         color: #6efaff;
         text-shadow: 0 0 10px #6efaff;
         letter-spacing: 2px;
+        margin-bottom: 10px;
+      }
+
+      /* 🩸 스탯 패널 */
+      #statsPanel {
+        border: 1px solid #6efaff55;
+        background: rgba(0, 20, 30, 0.4);
+        border-radius: 8px;
+        padding: 10px 20px;
+        margin-bottom: 15px;
+        color: #6efaff;
+        width: 100%;
+        max-width: 700px;
+        font-family: "Share Tech Mono", monospace;
+        display: flex;
+        justify-content: space-around;
+        text-shadow: 0 0 5px #6efaff33;
+      }
+
+      #statsPanel span {
+        color: #fff;
       }
 
       #chat {
@@ -38,7 +59,7 @@
         padding: 20px;
         width: 100%;
         max-width: 700px;
-        height: 60vh;
+        height: 55vh;
         overflow-y: auto;
         font-size: 15px;
         line-height: 1.5;
@@ -126,10 +147,20 @@
   </head>
   <body>
     <h1>🧠 ESCAPE FROM TEXTCORP</h1>
+
+    <!-- 🩸 스탯 패널 -->
+    <div id="statsPanel">
+      <p>❤️ 체력: <span id="hp">100</span></p>
+      <p>🍞 허기: <span id="hunger">100</span></p>
+      <p>🧭 탈출상황: <span id="escape">0%</span></p>
+    </div>
+
+    <!-- 📜 채팅 -->
     <div id="chat" class="fadeIn">
       <p>게임을 시작하려면 <span style="color:#6efaff">"시작"</span>을 입력하세요.</p>
     </div>
 
+    <!-- ⌨️ 입력 -->
     <div id="inputArea">
       <input id="input" placeholder="입력..." />
       <button id="send">보내기</button>
@@ -141,6 +172,12 @@
       const chatDiv = document.getElementById("chat");
       const input = document.getElementById("input");
       const send = document.getElementById("send");
+
+      // 🎮 스탯 요소
+      const hpEl = document.getElementById("hp");
+      const hungerEl = document.getElementById("hunger");
+      const escapeEl = document.getElementById("escape");
+
       let history = [];
 
       async function sendMessage() {
@@ -159,6 +196,11 @@
           const data = await res.json();
           const reply = data.reply ?? "(⚠️ 응답 없음)";
           appendMessage("🤖 AI", reply, "ai");
+
+          // 🎯 스탯 갱신
+          updateStats(data.stats);
+
+          // 대화 히스토리 저장
           history.push({ role: "user", content: text });
           history.push({ role: "assistant", content: reply });
         } catch (err) {
@@ -172,6 +214,14 @@
         p.innerHTML = `<b>${speaker}:</b> ${message}`;
         chatDiv.appendChild(p);
         chatDiv.scrollTop = chatDiv.scrollHeight;
+      }
+
+      function updateStats(stats) {
+        if (!stats) return;
+        if (stats.체력 !== undefined) hpEl.textContent = stats.체력;
+        if (stats.허기 !== undefined) hungerEl.textContent = stats.허기;
+        if (stats.탈출상황 !== undefined)
+          escapeEl.textContent = stats.탈출상황 + "%";
       }
 
       send.addEventListener("click", sendMessage);
