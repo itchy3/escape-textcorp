@@ -1,6 +1,23 @@
 import OpenAI from "openai";
 
-const SYSTEM_PROMPT = `
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return; // 명확하게 함수 종료
+  }
+
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      // 환경 변수 누락 시 명확히 에러 반환
+      throw new Error("Missing OPENAI_API_KEY");
+    }
+
+    const client = new OpenAI({ apiKey });
+    const { message, history = [] } = req.body;
+
+    // 시스템 프롬프트 (전체 붙여넣기)
+    const SYSTEM_PROMPT = `
 ============================================================
 🎮 ESCAPE FROM TEXTCORP v30
 SYSTEM PROMPT / GAME MASTER STANDARDIZED OUTPUT FORMAT
@@ -45,23 +62,8 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
 ============================================================
 `;
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: "Missing OPENAI_API_KEY" });
-      return;
-    }
-
-    const client = new OpenAI({ apiKey });
-    const { message, history = [] } = req.body;
-
-    const response = await client.chat.completions.create({
+    // ✅ OpenAI API 호출
+    const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -72,12 +74,23 @@ export default async function handler(req, res) {
       max_tokens: 1500
     });
 
-    const reply = response?.choices?.[0]?.message?.content || "AI 응답 없음";
-    console.log("✅ AI Reply:", reply);
-    res.status(200).json({ reply });
+    // ✅ 응답 파싱 (빈값 방지)
+    const reply =
+      completion?.choices?.[0]?.message?.content?.trim() ||
+      "(AI 응답이 비어 있습니다. 프롬프트를 확인하세요.)";
 
-  } catch (err) {
-    console.error("❌ Error:", err);
-    res.status(500).json({ error: err.message });
+    // 항상 명확히 반환
+    return res.status(200).json({ reply });
+  } catch (error) {
+    console.error("❌ 서버 오류:", error);
+
+    // 에러를 던지거나 명시적으로 응답
+    // 여기서는 try/catch 구조상 명시 응답으로 종료
+    res
+      .status(500)
+      .json({ error: error.message || "서버에서 알 수 없는 오류가 발생했습니다." });
+
+    // undefined 제거용 — 함수 종료 명시
+    return;
   }
 }
