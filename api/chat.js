@@ -1,4 +1,3 @@
-// api/chat.js
 import OpenAI from "openai";
 
 export default async function handler(req, res) {
@@ -8,20 +7,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 환경변수에서 API 키 읽기
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.error("❌ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.");
       res.status(500).json({ error: "Missing API key" });
       return;
     }
 
-    // OpenAI 클라이언트 생성
     const client = new OpenAI({ apiKey });
-
     const { message, history = [] } = req.body;
 
-    // 시스템 프롬프트 (Escape from TextCorp v30)
     const SYSTEM_PROMPT = `
 ============================================================
 🎮 ESCAPE FROM TEXTCORP v30
@@ -67,7 +61,6 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
 ============================================================
 `;
 
-    // 실제 요청
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -79,11 +72,16 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
       max_tokens: 1200
     });
 
-    const reply = completion.choices?.[0]?.message?.content || "(응답 없음)";
-    res.status(200).json({ reply });
+    // ✅ 안전하게 응답 읽기
+    const choice = completion.choices && completion.choices[0];
+    const reply =
+      choice && choice.message && choice.message.content
+        ? choice.message.content
+        : "(AI가 응답을 보내지 않았습니다)";
 
+    res.status(200).json({ reply });
   } catch (error) {
-    console.error("❌ API 요청 실패:", error);
+    console.error("❌ 서버 오류:", error);
     res.status(500).json({ error: error.message });
   }
 }
