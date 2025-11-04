@@ -36,10 +36,9 @@
         color: #6efaff;
         width: 100%;
         max-width: 700px;
-        font-family: "Share Tech Mono", monospace;
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
         text-shadow: 0 0 5px #6efaff33;
       }
 
@@ -56,20 +55,10 @@
         transition: width 0.4s ease, background-color 0.4s ease;
       }
 
-      #hpBar {
-        background-color: #ff4444;
-        width: 100%;
-      }
-
-      #hungerBar {
-        background-color: #ffcc44;
-        width: 100%;
-      }
-
-      #customBar {
-        background-color: #00ff99;
-        width: 100%;
-      }
+      #hpBar { background-color: #ff4444; width: 100%; }
+      #hungerBar { background-color: #ffcc44; width: 100%; }
+      #customBar { background-color: #00ff99; width: 100%; }
+      #escapeBar { background-color: #b266ff; width: 0%; } /* 💜 보라색 탈출상황바 */
 
       #chat {
         background-color: rgba(15, 20, 30, 0.8);
@@ -131,14 +120,8 @@
       }
 
       @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(5px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
       }
     </style>
   </head>
@@ -152,10 +135,13 @@
       <div>🍞 허기: <span id="hungerVal">100</span></div>
       <div class="barContainer"><div id="hungerBar" class="bar"></div></div>
 
-      <div>🧭 탈출상황: <span id="escapeVal">0%</span></div>
-
-      <div>🔮 맞춤스탯: <span id="customVal">100</span></div>
+      <div>🔮 <span id="customName">맞춤스탯</span>: 
+        <span id="customVal">100/100</span>
+      </div>
       <div class="barContainer"><div id="customBar" class="bar"></div></div>
+
+      <div>🧭 탈출상황: <span id="escapeVal">0%</span></div>
+      <div class="barContainer"><div id="escapeBar" class="bar"></div></div>
     </div>
 
     <div id="chat" class="fadeIn">
@@ -177,11 +163,13 @@
       const hpVal = document.getElementById("hpVal");
       const hungerVal = document.getElementById("hungerVal");
       const escapeVal = document.getElementById("escapeVal");
+      const customName = document.getElementById("customName");
       const customVal = document.getElementById("customVal");
 
       const hpBar = document.getElementById("hpBar");
       const hungerBar = document.getElementById("hungerBar");
       const customBar = document.getElementById("customBar");
+      const escapeBar = document.getElementById("escapeBar");
 
       let history = [];
 
@@ -202,7 +190,7 @@
           const reply = data.reply ?? "(⚠️ 응답 없음)";
           appendMessage("🤖 AI", reply, "ai");
 
-          if (data.hidden) handleHiddenCode(data.hidden);
+          if (reply) parseHiddenTags(reply);
 
           history.push({ role: "user", content: text });
           history.push({ role: "assistant", content: reply });
@@ -219,38 +207,69 @@
         chatDiv.scrollTop = chatDiv.scrollHeight;
       }
 
-      // 🧩 hidden 명령 처리
-      function handleHiddenCode(hidden) {
-        if (hidden.hp !== undefined) updateBar("hp", hidden.hp);
-        if (hidden.hunger !== undefined) updateBar("hunger", hidden.hunger);
-        if (hidden.escape !== undefined)
-          escapeVal.textContent = hidden.escape + "%";
-        if (hidden.custom !== undefined) updateBar("custom", hidden.custom);
+      // 🎯 hidden 코드 파서
+      function parseHiddenTags(text) {
+        const match = text.match(/<!--HIDDEN_UPDATE_START-->([\s\S]*?)<!--HIDDEN_UPDATE_END-->/);
+        if (!match) return;
+        const lines = match[1].trim().split("\n");
+        let custom = { name: null, current: null, max: null };
+        lines.forEach(line => {
+          const [key, value] = line.split(":").map(v => v.trim());
+          const num = parseInt(value);
+          switch (key) {
+            case "health": updateBar("hp", num); break;
+            case "hunger": updateBar("hunger", num); break;
+            case "escape": updateEscape(num); break;
+            case "custom": updateBar("custom", num); break;
+            case "customName": custom.name = value; break;
+            case "customCurrent": custom.current = num; break;
+            case "customMax": custom.max = num; break;
+          }
+        });
+        if (custom.name) updateCustomName(custom);
       }
 
-      // 체력/허기/맞춤스탯 바 업데이트
-      function updateBar(type, value) {
+      // 📊 일반 게이지 업데이트
+      function updateBar(type, delta) {
         const bar = { hp: hpBar, hunger: hungerBar, custom: customBar }[type];
-        const label = {
-          hp: hpVal,
-          hunger: hungerVal,
-          custom: customVal
-        }[type];
+        const label = { hp: hpVal, hunger: hungerVal }[type];
+        if (!bar) return;
+
+        if (type === "custom") {
+          const [cur, maxPart] = customVal.textContent.split("/");
+          const curVal = parseInt(cur);
+          const maxVal = parseInt(maxPart);
+          const newVal = Math.max(0, Math.min(curVal + delta, maxVal));
+          customVal.textContent = `${newVal}/${maxVal}${customVal.textContent.includes("ml") ? "ml" : ""}`;
+          customBar.style.width = (newVal / maxVal) * 100 + "%";
+          return;
+        }
 
         let current = parseInt(label.textContent);
-        let newValue = Math.max(0, Math.min(current + value, 100));
-
+        let newValue = Math.max(0, Math.min(current + delta, 100));
         label.textContent = newValue;
         bar.style.width = newValue + "%";
+        flashBar(bar);
+      }
 
-        // 색상 유지
-        if (type === "hp") bar.style.backgroundColor = "#ff4444";
-        if (type === "hunger") bar.style.backgroundColor = "#ffcc44";
-        if (type === "custom") bar.style.backgroundColor = "#00ff99";
-
-        // 시각 피드백 (반짝임)
+      function flashBar(bar) {
         bar.style.boxShadow = "0 0 10px #fff";
         setTimeout(() => (bar.style.boxShadow = "none"), 300);
+      }
+
+      function updateCustomName(custom) {
+        const unit = custom.name.includes("액체") ? "ml" : "";
+        customName.textContent = custom.name;
+        customVal.textContent = `${custom.current}/${custom.max}${unit}`;
+        customBar.style.width = (custom.current / custom.max) * 100 + "%";
+      }
+
+      function updateEscape(delta) {
+        let current = parseInt(escapeVal.textContent);
+        let newValue = Math.max(0, Math.min(current + delta, 100));
+        escapeVal.textContent = newValue + "%";
+        escapeBar.style.width = newValue + "%";
+        flashBar(escapeBar);
       }
 
       send.addEventListener("click", sendMessage);
