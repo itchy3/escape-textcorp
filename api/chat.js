@@ -5,6 +5,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ✅ 환경변수에서 API 키 및 프로젝트 ID 불러오기
+    const API_KEY = process.env.OPENAI_API_KEY;
+    const PROJECT_ID = process.env.OPENAI_PROJECT_ID; // optional
+
+    if (!API_KEY) {
+      return res.status(500).json({
+        error: "❌ Missing API key. Make sure OPENAI_API_KEY is set in environment variables.",
+      });
+    }
+
     // ✅ body 수동 파싱
     let body = "";
     await new Promise((resolve) => {
@@ -13,11 +23,8 @@ export default async function handler(req, res) {
     });
 
     const { message, history } = JSON.parse(body || "{}");
-    if (!message) return res.status(400).json({ error: "No message provided" });
-
-    // ✅ 실제 네 키와 프로젝트 ID 입력
-    const API_KEY = "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";
-    const PROJECT_ID = "proj_HQGizpwUws5BsOjG0l1HDAAG";
+    if (!message)
+      return res.status(400).json({ error: "⚠️ No message provided." });
 
     // 🎮 SYSTEM PROMPT
     const systemPrompt = `======================= 
@@ -59,7 +66,7 @@ SECTION 4. [일관성 유지 규칙] 섹션 이름, 구분선, 이모지, 블록
 SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 달성하라. ============================================================ 
 이 프롬프트가 입력되면, 🎯 게임 목표, 룰 요약(아이템 작성 요령, 스탯 및 게이지 요약, 시간제한 등을 설명), 프롤로그 이후에 바로 아이템 작성을 요구하라.`;
 
-    // ✅ OpenAI 요청 본문
+    // ✅ OpenAI API 요청 본문
     const payload = {
       model: "gpt-4o-mini",
       messages: [
@@ -69,33 +76,36 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
       ],
     };
 
-    // ✅ 핵심: project key용 올바른 엔드포인트 + 헤더
+    // ✅ 헤더 (환경변수 기반)
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${API_KEY}`,
+    };
+
+    if (PROJECT_ID) headers["OpenAI-Project"] = PROJECT_ID;
+
+    // ✅ OpenAI API 호출
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
-        "OpenAI-Project": PROJECT_ID, // 🔹 이게 핵심! (proj_xxx)
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
+    // 에러 처리
     if (!response.ok) {
       const errText = await response.text();
       console.error("❌ OpenAI 응답 오류:", errText);
       return res.status(response.status).json({ error: errText });
     }
 
+    // 결과 파싱
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "(응답 없음)";
 
     console.log("✅ AI 응답:", reply);
-    res.status(200).json({ reply });
+    return res.status(200).json({ reply });
   } catch (error) {
     console.error("❌ 서버 오류:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
-
-
-
