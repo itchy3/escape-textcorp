@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     if (!message) return res.status(400).json({ error: "No message provided" });
 
     // ✅ 실제 네 키와 프로젝트 ID 입력
-    const API_KEY = "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";
+    const API_KEY = "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";
     const PROJECT_ID = "proj_HQGizpwUws5BsOjG0l1HDAAG";
 
     // 🎮 SYSTEM PROMPT
@@ -96,5 +96,6 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
     res.status(500).json({ error: error.message });
   }
 }
+
 
 
