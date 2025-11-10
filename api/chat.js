@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
     // ✅ OpenAI 초기화
     const openai = new OpenAI({
-      apiKey: "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", // ⚠️ 테스트용
+      apiKey: "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", // ⚠️ 테스트용
     });
 
     // ✅ SYSTEM 프롬프트 (네 버전 그대로)
@@ -84,3 +84,4 @@ SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 �
     res.status(500).json({ error: err.message });
   }
 }
+
