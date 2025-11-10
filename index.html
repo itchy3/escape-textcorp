@@ -38,7 +38,7 @@
         max-width: 700px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 5px;
         text-shadow: 0 0 5px #6efaff33;
       }
 
@@ -58,7 +58,7 @@
       #hpBar { background-color: #ff4444; width: 100%; }
       #hungerBar { background-color: #ffcc44; width: 100%; }
       #customBar { background-color: #00ff99; width: 100%; }
-      #escapeBar { background-color: #b266ff; width: 0%; } /* 💜 보라색 탈출상황바 */
+      #escapeBar { background-color: #b06eff; width: 0%; }
 
       #chat {
         background-color: rgba(15, 20, 30, 0.8);
@@ -74,36 +74,27 @@
         box-shadow: 0 0 20px #00ffff22;
       }
 
-      #inputArea {
-        width: 100%;
-        max-width: 700px;
+      #choiceArea {
+        margin-top: 15px;
         display: flex;
-        margin-top: 20px;
+        flex-wrap: wrap;
         gap: 10px;
+        justify-content: center;
       }
 
-      input {
-        flex: 1;
-        background-color: #0a0f14;
-        color: #6efaff;
-        border: 1px solid #6efaff55;
-        border-radius: 5px;
-        padding: 10px;
-        font-size: 16px;
-      }
-
-      button {
+      .choiceBtn {
         background-color: #002b36;
         border: 1px solid #6efaff88;
         color: #6efaff;
-        padding: 10px 18px;
+        padding: 10px 15px;
         border-radius: 5px;
         cursor: pointer;
         font-weight: bold;
         transition: 0.2s;
+        font-family: "Share Tech Mono", monospace;
       }
 
-      button:hover {
+      .choiceBtn:hover {
         background-color: #003d46;
         box-shadow: 0 0 10px #6efaff44;
       }
@@ -113,58 +104,43 @@
         font-size: 13px;
         color: #6efaff55;
       }
-
-      .fadeIn {
-        opacity: 0;
-        animation: fadeIn 0.8s forwards;
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
     </style>
   </head>
   <body>
     <h1>🧠 ESCAPE FROM TEXTCORP</h1>
 
     <div id="statsPanel">
-      <div>❤️ 체력: <span id="hpVal">100</span></div>
+      ❤️ 체력: <span id="hpVal">100</span>
       <div class="barContainer"><div id="hpBar" class="bar"></div></div>
 
-      <div>🍞 허기: <span id="hungerVal">100</span></div>
+      🍞 허기: <span id="hungerVal">100</span>
       <div class="barContainer"><div id="hungerBar" class="bar"></div></div>
 
-      <div>🔮 <span id="customName">맞춤스탯</span>: 
-        <span id="customVal">100/100</span>
-      </div>
+      🔮 맞춤스탯: <span id="customVal">-</span>
       <div class="barContainer"><div id="customBar" class="bar"></div></div>
 
-      <div>🧭 탈출상황: <span id="escapeVal">0%</span></div>
+      🧭 탈출상황: <span id="escapeVal">0%</span>
       <div class="barContainer"><div id="escapeBar" class="bar"></div></div>
     </div>
 
-    <div id="chat" class="fadeIn">
-      <p>게임을 시작하려면 <span style="color:#6efaff">"시작"</span>을 입력하세요.</p>
+    <div id="chat">
+      <p>게임을 시작하려면 아래 버튼을 누르세요.</p>
     </div>
 
-    <div id="inputArea">
-      <input id="input" placeholder="입력..." />
-      <button id="send">보내기</button>
+    <div id="choiceArea">
+      <button class="choiceBtn" onclick="sendMessage('시작')">게임 시작</button>
     </div>
 
-    <footer>© Hyper-Ego Games | 감옥섬 탈출 시뮬레이션 v30</footer>
+    <footer>© Hyper-Ego Games | Escape from TextCorp v30</footer>
 
     <script>
       const chatDiv = document.getElementById("chat");
-      const input = document.getElementById("input");
-      const send = document.getElementById("send");
+      const choiceArea = document.getElementById("choiceArea");
 
       const hpVal = document.getElementById("hpVal");
       const hungerVal = document.getElementById("hungerVal");
-      const escapeVal = document.getElementById("escapeVal");
-      const customName = document.getElementById("customName");
       const customVal = document.getElementById("customVal");
+      const escapeVal = document.getElementById("escapeVal");
 
       const hpBar = document.getElementById("hpBar");
       const hungerBar = document.getElementById("hungerBar");
@@ -173,109 +149,86 @@
 
       let history = [];
 
-      async function sendMessage() {
-        const text = input.value.trim();
-        if (!text) return;
-        appendMessage("🧍‍♂️ 당신", text, "player");
-        input.value = "";
+      async function sendMessage(text) {
+        appendMessage("🧍‍♂️ 당신", text);
+        choiceArea.innerHTML = "";
 
-        try {
-          const res = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text, history })
-          });
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, history }),
+        });
 
-          const data = await res.json();
-          const reply = data.reply ?? "(⚠️ 응답 없음)";
-          appendMessage("🤖 AI", reply, "ai");
+        const data = await res.json();
+        const reply = data.reply ?? "(응답 없음)";
+        appendMessage("🤖 AI", reply);
+        history.push({ role: "user", content: text });
+        history.push({ role: "assistant", content: reply });
 
-          if (reply) parseHiddenTags(reply);
-
-          history.push({ role: "user", content: text });
-          history.push({ role: "assistant", content: reply });
-        } catch (err) {
-          appendMessage("⚠️ 오류", err.message, "ai");
-        }
+        handleHidden(reply);
+        createChoices(reply);
       }
 
-      function appendMessage(speaker, message, cls) {
+      function appendMessage(speaker, message) {
         const p = document.createElement("p");
-        p.classList.add(cls, "fadeIn");
         p.innerHTML = `<b>${speaker}:</b> ${message}`;
         chatDiv.appendChild(p);
         chatDiv.scrollTop = chatDiv.scrollHeight;
       }
 
-      // 🎯 hidden 코드 파서
-      function parseHiddenTags(text) {
-        const match = text.match(/<!--HIDDEN_UPDATE_START-->([\s\S]*?)<!--HIDDEN_UPDATE_END-->/);
-        if (!match) return;
-        const lines = match[1].trim().split("\n");
-        let custom = { name: null, current: null, max: null };
+      function createChoices(reply) {
+        const matches = [...reply.matchAll(/([0-9️⃣]+)\s*[-—]\s*([^\n]+)/g)];
+        if (matches.length === 0) return;
+        matches.forEach(([_, num, title]) => {
+          const btn = document.createElement("button");
+          btn.classList.add("choiceBtn");
+          btn.textContent = `${num} ${title.trim()}`;
+          btn.onclick = () => sendMessage(num);
+          choiceArea.appendChild(btn);
+        });
+      }
+
+      function handleHidden(text) {
+        const hiddenBlock = text.match(/<!--HIDDEN_UPDATE_START-->([\s\S]*?)<!--HIDDEN_UPDATE_END-->/);
+        if (!hiddenBlock) return;
+        const lines = hiddenBlock[1].trim().split("\n");
+
+        let custom = { name: null, current: 0, max: 100 };
         lines.forEach(line => {
-          const [key, value] = line.split(":").map(v => v.trim());
-          const num = parseInt(value);
-          switch (key) {
-            case "health": updateBar("hp", num); break;
-            case "hunger": updateBar("hunger", num); break;
-            case "escape": updateEscape(num); break;
-            case "custom": updateBar("custom", num); break;
-            case "customName": custom.name = value; break;
-            case "customCurrent": custom.current = num; break;
-            case "customMax": custom.max = num; break;
+          const [key, value] = line.split(":");
+          if (!key || value === undefined) return;
+          const val = isNaN(value) ? value.trim() : parseFloat(value);
+          switch (key.trim()) {
+            case "health": updateBar(hpVal, hpBar, val); break;
+            case "hunger": updateBar(hungerVal, hungerBar, val); break;
+            case "customName": custom.name = val; break;
+            case "customCurrent": custom.current = val; break;
+            case "customMax": custom.max = val; break;
+            case "escape": updateEscape(val); break;
           }
         });
-        if (custom.name) updateCustomName(custom);
+        if (custom.name) updateCustom(custom);
       }
 
-      // 📊 일반 게이지 업데이트
-      function updateBar(type, delta) {
-        const bar = { hp: hpBar, hunger: hungerBar, custom: customBar }[type];
-        const label = { hp: hpVal, hunger: hungerVal }[type];
-        if (!bar) return;
-
-        if (type === "custom") {
-          const [cur, maxPart] = customVal.textContent.split("/");
-          const curVal = parseInt(cur);
-          const maxVal = parseInt(maxPart);
-          const newVal = Math.max(0, Math.min(curVal + delta, maxVal));
-          customVal.textContent = `${newVal}/${maxVal}${customVal.textContent.includes("ml") ? "ml" : ""}`;
-          customBar.style.width = (newVal / maxVal) * 100 + "%";
-          return;
-        }
-
-        let current = parseInt(label.textContent);
-        let newValue = Math.max(0, Math.min(current + delta, 100));
-        label.textContent = newValue;
-        bar.style.width = newValue + "%";
-        flashBar(bar);
-      }
-
-      function flashBar(bar) {
-        bar.style.boxShadow = "0 0 10px #fff";
-        setTimeout(() => (bar.style.boxShadow = "none"), 300);
-      }
-
-      function updateCustomName(custom) {
-        const unit = custom.name.includes("액체") ? "ml" : "";
-        customName.textContent = custom.name;
-        customVal.textContent = `${custom.current}/${custom.max}${unit}`;
-        customBar.style.width = (custom.current / custom.max) * 100 + "%";
+      function updateBar(label, bar, delta) {
+        let current = parseFloat(label.textContent);
+        const newVal = Math.max(0, Math.min(current + delta, 100));
+        label.textContent = Math.round(newVal);
+        bar.style.width = newVal + "%";
       }
 
       function updateEscape(delta) {
-        let current = parseInt(escapeVal.textContent);
-        let newValue = Math.max(0, Math.min(current + delta, 100));
-        escapeVal.textContent = newValue + "%";
-        escapeBar.style.width = newValue + "%";
-        flashBar(escapeBar);
+        let current = parseFloat(escapeVal.textContent);
+        const newVal = Math.max(0, Math.min(current + delta, 100));
+        escapeVal.textContent = Math.round(newVal) + "%";
+        escapeBar.style.width = newVal + "%";
       }
 
-      send.addEventListener("click", sendMessage);
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendMessage();
-      });
+      function updateCustom(custom) {
+        customVal.textContent = `${custom.name} ${custom.current}/${custom.max}`;
+        const percent = (custom.current / custom.max) * 100;
+        customBar.style.width = percent + "%";
+      }
     </script>
   </body>
 </html>
