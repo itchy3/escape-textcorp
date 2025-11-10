@@ -1,234 +1,131 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ESCAPE FROM TEXTCORP</title>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap");
-
-      body {
-        background: radial-gradient(circle at center, #0c0f14 0%, #000000 100%);
-        color: #b0f0ff;
-        font-family: "Share Tech Mono", monospace;
-        margin: 0;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 40px 20px;
-      }
-
-      h1 {
-        text-align: center;
-        color: #6efaff;
-        text-shadow: 0 0 10px #6efaff;
-        letter-spacing: 2px;
-        margin-bottom: 10px;
-      }
-
-      #statsPanel {
-        border: 1px solid #6efaff55;
-        background: rgba(0, 20, 30, 0.4);
-        border-radius: 8px;
-        padding: 10px 20px;
-        margin-bottom: 15px;
-        color: #6efaff;
-        width: 100%;
-        max-width: 700px;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        text-shadow: 0 0 5px #6efaff33;
-      }
-
-      .barContainer {
-        width: 100%;
-        background-color: #222;
-        border-radius: 4px;
-        height: 12px;
-        overflow: hidden;
-      }
-
-      .bar {
-        height: 100%;
-        transition: width 0.4s ease, background-color 0.4s ease;
-      }
-
-      #hpBar { background-color: #ff4444; width: 100%; }
-      #hungerBar { background-color: #ffcc44; width: 100%; }
-      #customBar { background-color: #00ff99; width: 100%; }
-      #escapeBar { background-color: #b06eff; width: 0%; }
-
-      #chat {
-        background-color: rgba(15, 20, 30, 0.8);
-        border: 1px solid #6efaff33;
-        border-radius: 8px;
-        padding: 20px;
-        width: 100%;
-        max-width: 700px;
-        height: 55vh;
-        overflow-y: auto;
-        font-size: 15px;
-        line-height: 1.5;
-        box-shadow: 0 0 20px #00ffff22;
-      }
-
-      #choiceArea {
-        margin-top: 15px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-      }
-
-      .choiceBtn {
-        background-color: #002b36;
-        border: 1px solid #6efaff88;
-        color: #6efaff;
-        padding: 10px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: 0.2s;
-        font-family: "Share Tech Mono", monospace;
-      }
-
-      .choiceBtn:hover {
-        background-color: #003d46;
-        box-shadow: 0 0 10px #6efaff44;
-      }
-
-      footer {
-        margin-top: 15px;
-        font-size: 13px;
-        color: #6efaff55;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>🧠 ESCAPE FROM TEXTCORP</h1>
-
-    <div id="statsPanel">
-      ❤️ 체력: <span id="hpVal">100</span>
-      <div class="barContainer"><div id="hpBar" class="bar"></div></div>
-
-      🍞 허기: <span id="hungerVal">100</span>
-      <div class="barContainer"><div id="hungerBar" class="bar"></div></div>
-
-      🔮 맞춤스탯: <span id="customVal">-</span>
-      <div class="barContainer"><div id="customBar" class="bar"></div></div>
-
-      🧭 탈출상황: <span id="escapeVal">0%</span>
-      <div class="barContainer"><div id="escapeBar" class="bar"></div></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESCAPE FROM TEXTCORP</title>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    #game-container {
+      width: 100%;
+      max-width: 600px;
+      background: #1e1e1e;
+      border-radius: 16px;
+      box-shadow: 0 0 12px #000;
+      padding: 20px;
+    }
+    #log {
+      max-height: 60vh;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-bottom: 20px;
+    }
+    input, button {
+      font-size: 16px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+    #item-input { width: 70%; }
+    #send-btn {
+      background: #3b82f6;
+      color: white;
+      margin-left: 8px;
+    }
+    .choice-btn {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      background: #444;
+      color: white;
+      transition: 0.2s;
+    }
+    .choice-btn:hover { background: #666; }
+    @media (max-width: 600px) {
+      #game-container { padding: 10px; }
+      input, button { width: 100%; margin: 5px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="log">🎮 ESCAPE FROM TEXTCORP<br>물건을 입력하세요 (10자 이내)</div>
+    <div id="input-area">
+      <input id="item-input" type="text" maxlength="10" placeholder="예: 권총, 마법지팡이..." />
+      <button id="send-btn">시작</button>
     </div>
+    <div id="choices"></div>
+  </div>
 
-    <div id="chat">
-      <p>게임을 시작하려면 아래 버튼을 누르세요.</p>
-    </div>
+  <script>
+    const log = document.getElementById("log");
+    const inputArea = document.getElementById("input-area");
+    const itemInput = document.getElementById("item-input");
+    const sendBtn = document.getElementById("send-btn");
+    const choices = document.getElementById("choices");
+    let history = [];
+    let hiddenPrompt = ""; // ← AI 통신용 내부 메시지 (사용자에게 안보임)
 
-    <div id="choiceArea">
-      <button class="choiceBtn" onclick="sendMessage('시작')">게임 시작</button>
-    </div>
+    const appendLog = (text, sender = "ai") => {
+      const prefix = sender === "user" ? "🧍‍♂️ 당신: " : "🤖 AI: ";
+      log.innerHTML += `\n${prefix}${text}`;
+      log.scrollTop = log.scrollHeight;
+    };
 
-    <footer>© Hyper-Ego Games | Escape from TextCorp v30</footer>
+    const sendMessage = async (msg) => {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, history }),
+      });
+      const data = await response.json();
+      const reply = data.reply || "(응답 없음)";
+      history.push({ role: "user", content: msg });
+      history.push({ role: "assistant", content: reply });
+      appendLog(reply, "ai");
+      handleAIResponse(reply);
+    };
 
-    <script>
-      const chatDiv = document.getElementById("chat");
-      const choiceArea = document.getElementById("choiceArea");
-
-      const hpVal = document.getElementById("hpVal");
-      const hungerVal = document.getElementById("hungerVal");
-      const customVal = document.getElementById("customVal");
-      const escapeVal = document.getElementById("escapeVal");
-
-      const hpBar = document.getElementById("hpBar");
-      const hungerBar = document.getElementById("hungerBar");
-      const customBar = document.getElementById("customBar");
-      const escapeBar = document.getElementById("escapeBar");
-
-      let history = [];
-
-      async function sendMessage(text) {
-        appendMessage("🧍‍♂️ 당신", text);
-        choiceArea.innerHTML = "";
-
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, history }),
-        });
-
-        const data = await res.json();
-        const reply = data.reply ?? "(응답 없음)";
-        appendMessage("🤖 AI", reply);
-        history.push({ role: "user", content: text });
-        history.push({ role: "assistant", content: reply });
-
-        handleHidden(reply);
-        createChoices(reply);
-      }
-
-      function appendMessage(speaker, message) {
-        const p = document.createElement("p");
-        p.innerHTML = `<b>${speaker}:</b> ${message}`;
-        chatDiv.appendChild(p);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-      }
-
-      function createChoices(reply) {
-        const matches = [...reply.matchAll(/([0-9️⃣]+)\s*[-—]\s*([^\n]+)/g)];
-        if (matches.length === 0) return;
-        matches.forEach(([_, num, title]) => {
+    // 🔹 AI 응답을 분석해 선택지나 스탯을 HTML로 반영
+    const handleAIResponse = (text) => {
+      choices.innerHTML = "";
+      hiddenPrompt = text; // 내부 저장
+      const match = text.match(/1️⃣|2️⃣|3️⃣/g);
+      if (match) {
+        const parts = text.split(/(?=1️⃣|2️⃣|3️⃣)/g);
+        parts.forEach(part => {
           const btn = document.createElement("button");
-          btn.classList.add("choiceBtn");
-          btn.textContent = `${num} ${title.trim()}`;
-          btn.onclick = () => sendMessage(num);
-          choiceArea.appendChild(btn);
+          btn.className = "choice-btn";
+          btn.textContent = part.trim();
+          btn.onclick = () => {
+            appendLog(part.trim(), "user");
+            sendMessage(part.trim());
+          };
+          choices.appendChild(btn);
         });
       }
+    };
 
-      function handleHidden(text) {
-        const hiddenBlock = text.match(/<!--HIDDEN_UPDATE_START-->([\s\S]*?)<!--HIDDEN_UPDATE_END-->/);
-        if (!hiddenBlock) return;
-        const lines = hiddenBlock[1].trim().split("\n");
-
-        let custom = { name: null, current: 0, max: 100 };
-        lines.forEach(line => {
-          const [key, value] = line.split(":");
-          if (!key || value === undefined) return;
-          const val = isNaN(value) ? value.trim() : parseFloat(value);
-          switch (key.trim()) {
-            case "health": updateBar(hpVal, hpBar, val); break;
-            case "hunger": updateBar(hungerVal, hungerBar, val); break;
-            case "customName": custom.name = val; break;
-            case "customCurrent": custom.current = val; break;
-            case "customMax": custom.max = val; break;
-            case "escape": updateEscape(val); break;
-          }
-        });
-        if (custom.name) updateCustom(custom);
-      }
-
-      function updateBar(label, bar, delta) {
-        let current = parseFloat(label.textContent);
-        const newVal = Math.max(0, Math.min(current + delta, 100));
-        label.textContent = Math.round(newVal);
-        bar.style.width = newVal + "%";
-      }
-
-      function updateEscape(delta) {
-        let current = parseFloat(escapeVal.textContent);
-        const newVal = Math.max(0, Math.min(current + delta, 100));
-        escapeVal.textContent = Math.round(newVal) + "%";
-        escapeBar.style.width = newVal + "%";
-      }
-
-      function updateCustom(custom) {
-        customVal.textContent = `${custom.name} ${custom.current}/${custom.max}`;
-        const percent = (custom.current / custom.max) * 100;
-        customBar.style.width = percent + "%";
-      }
-    </script>
-  </body>
+    // 🔹 게임 시작
+    sendBtn.onclick = () => {
+      const item = itemInput.value.trim();
+      if (!item) return alert("아이템을 입력하세요!");
+      if (item.length > 10) return alert("10자 이내로 입력하세요.");
+      appendLog(item, "user");
+      sendMessage(`아이템으로 '${item}'을 선택합니다.`);
+      inputArea.style.display = "none"; // 입력창 비활성화
+    };
+  </script>
+</body>
 </html>
