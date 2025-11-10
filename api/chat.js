@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ✅ body 수동 파싱
     let body = "";
     await new Promise((resolve) => {
       req.on("data", (chunk) => (body += chunk.toString()));
@@ -14,15 +15,12 @@ export default async function handler(req, res) {
     const { message, history } = JSON.parse(body || "{}");
     if (!message) return res.status(400).json({ error: "No message provided" });
 
-    // ✅ OpenAI 프로젝트 키와 프로젝트 ID
+    // ✅ 실제 네 키와 프로젝트 ID 입력
     const API_KEY = "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";
     const PROJECT_ID = "proj_HQGizpwUws5BsOjG0l1HDAAG";
 
-    // ==========================================================
-    // 🎮 SYSTEM PROMPT (여기에 ESCAPE FROM TEXTCORP v30 전체 넣기)
-    // ==========================================================
-    const systemPrompt = `
-======================= 
+    // 🎮 SYSTEM PROMPT
+    const systemPrompt = `======================= 
 🎮 ESCAPE FROM TEXTCORP v30 SYSTEM PROMPT / GAME MASTER STANDARDIZED OUTPUT FORMAT 이 프롬프트는 **감옥섬 탈출 시뮬레이션(Escape from TextCorp)**을 위한 AI 게임 마스터 표준 구조를 정의한다. 모든 AI는 동일한 형식, 문단 구조, 시각적 포맷을 따라야 하며, 서사의 감각적 일관성과 게임적 규칙이 절대적으로 유지되어야 한다. ============================================================ 
 SECTION 0. [세계관 및 기본 설정] 이 감옥섬은 거대한 벽으로 둘러싸인 거대 생체 실험 구역이다. 한때 교정 시설이었던 곳은 이제 거대기업의 비밀 연구장으로 변질되었다. 내부에는 실패한 실험체, 방치된 야수, 그리고 자동화된 경비 병력이 섬 전체를 배회한다. 섬 안쪽은 거의 야생에 가까운 상태로 되돌아가, 철조망과 잔해 속에 자연이 침식하고 있다. 섬의 생태는 생명보다 실험의 효율을 위해 설계되어 있으며, 당신은 오직 살아남고 탈출하는 것만이 유일한 자유다. 🎯 게임 목표: 14일 동안 생존하며, ‘탈출 상황 100%’를 달성하면 완전 탈출 성공. 이 전체 프롬프트를 입력하면 자연스럽게 플레이어에게 아이템 작성(10자 제한)을 요구하여 게임을 시작하면 됨. 작성하는 아이템은 반드시 한개여야 하며, 두개 이상을 입력시 게임 시작을 거부하고 다시 작성 요구. 수식어는 허용. 아이템은 그에 맞는 '맞춤스탯'을 자동으로 입력. (예시: 총-총알, 물병-물, 마법-마나, 등) ============================================================
 ====SECTION 1. 선택지====
@@ -59,31 +57,28 @@ STRICT RULES: 두 장소는 위험=보상 구조 모든 직감(💭) 문장은 �
 SECTION 3. [DAY별 환경 및 적 제한 규칙] DAY 주요 배경 범위 환경 테마 등장 가능 적 종류 서사 특징 / 위기 구조 1 감옥섬 중심부 야생, 철조망, 폐건물 등 없음 (튜토리얼 / 환경 위협만 존재) 깨어남, 혼란, 생존 개시 2–3 숲, 용암 지대, 습지 등 자연, 원시, 유기적 지형 맹수, 벌레, 야생 생물 생존 감각, 원초적 위협, 회복·자원 발견 가능 4–5 감옥섬의 내부 시설 (화장실, 제어실, 기계실 등) 인공적, 금속, 어둡고 습함 경비병, 무인 센트리 폐쇄공간 위협, 탐색과 리스크 병행 6–8 감옥섬 하부/하수도/콘크리트 통로 차갑고 회색의 인공 공간 무장 경비병, 실험체 압박감, 실험 잔재, 체력 손실 빈번 9–11 섬 외곽, 해변, 쓰레기장, 방호벽 인근 노출된 개활지, 폭풍, 먼지 드론, 엑소수트 병사, 중화기 경비병 폭력적, 전투 중심, 탈출 단서 등장 12–13 외곽 전초기지, 감시소, 항구로 이어지는 통로 불길한 고요, 잔해, 빛의 대비 소수의 강적 / 추격자 절정부, 결정적 선택, 희생 요소 14 탈출 가능한 시설 (선착장, 보트, 잠수복 등) 바다, 새벽빛, 폭풍 적 등장 없음 엔딩 / 탈출 여부 판정 구간 DAY 진행 시 AI는 해당 DAY의 환경 범위와 적 종류만 사용할 수 있다. 환경 톤은 점점 고조되고, 리스크가 점진적으로 증가해야한다. ============================================================ 
 SECTION 4. [일관성 유지 규칙] 섹션 이름, 구분선, 이모지, 블록 순서 절대 변경 금지 문장 간 간격은 1~2줄 유지 ‘현재 상태’ 및 ‘다음 선택지’ 블록은 결과의 가장 마지막 직감(💭)은 항상 1줄 수치는 반드시 SUMMARY 이후 감각 묘사가 수치보다 항상 먼저 DAY 번호는 매 턴 +1 입력 블록은 항상 마지막에 표시 ============================================================ 
 SECTION 5. [게임 목표] 14일 동안 살아남아 **탈출 상황 100%**를 달성하라. ============================================================ 
-이 프롬프트가 입력되면, 🎯 게임 목표, 룰 요약(아이템 작성 요령, 스탯 및 게이지 요약, 시간제한 등을 설명), 프롤로그 이후에 바로 아이템 작성을 요구하라.
+이 프롬프트가 입력되면, 🎯 게임 목표, 룰 요약(아이템 작성 요령, 스탯 및 게이지 요약, 시간제한 등을 설명), 프롤로그 이후에 바로 아이템 작성을 요구하라.`;
 
-`;
-
-    // ✅ OpenAI API 요청 본문
+    // ✅ OpenAI 요청 본문
     const payload = {
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: systemPrompt }, // 🔹 시스템 프롬프트 위치
+        { role: "system", content: systemPrompt },
         ...(history || []),
         { role: "user", content: message },
       ],
     };
 
-    const response = await fetch(
-      `https://api.openai.com/v1/projects/${PROJECT_ID}/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    // ✅ 핵심: project key용 올바른 엔드포인트 + 헤더
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`,
+        "OpenAI-Project": PROJECT_ID, // 🔹 이게 핵심! (proj_xxx)
+      },
+      body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
