@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 
 export default async function handler(req) {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+   const openai = new OpenAI({
+    apiKey: "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", // 🔑 여기에 네 키 넣기
+  });
+
   const { message, history } = await req.json();
 
   const systemPrompt = `
@@ -76,3 +79,4 @@ escape:[탈출상황 증감값]
     headers: { "Content-Type": "application/json" },
   });
 }
+
