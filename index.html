@@ -5,129 +5,207 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESCAPE FROM TEXTCORP</title>
   <style>
+    :root {
+      --hp-color: #e63946;
+      --hunger-color: #ffb703;
+      --stat-color: #00b4d8;
+      --escape-color: #9d4edd;
+      --bg: #0a0a0a;
+      --panel: #121212;
+      --text: #d8dee9;
+    }
+    * { box-sizing: border-box; }
     body {
-      background: #0a0a0a;
-      color: #d8dee9;
+      background: var(--bg);
+      color: var(--text);
       font-family: "Noto Sans KR", sans-serif;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-start;
+      min-height: 100vh;
     }
-
-    #container {
-      width: 95%;
-      max-width: 700px;
-      background: #121212;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+    header {
+      font-size: 1.5rem; font-weight: 600; margin: 24px 0; color: #e0e0e0;
+      letter-spacing: 1px; text-shadow: 0 0 10px #3b82f6;
     }
-
+    #game-container {
+      background: var(--panel); width: 95%; max-width: 700px;
+      padding: 20px; border-radius: 16px; box-shadow: 0 0 16px rgba(0,0,0,0.7);
+    }
+    #stats { margin-bottom: 20px; }
+    .bar { position: relative; background: #333; height: 18px; border-radius: 10px; overflow: hidden; margin: 6px 0; }
+    .bar-fill { height: 100%; transition: width 0.4s ease; }
+    .label { font-size: 0.85rem; margin-bottom: 2px; opacity: 0.9; }
     #log {
-      background: #1a1a1a;
-      padding: 15px;
-      border-radius: 8px;
-      min-height: 300px;
-      white-space: pre-wrap;
-      line-height: 1.5em;
-      font-size: 0.95rem;
-      overflow-y: auto;
+      max-height: 50vh; overflow-y: auto; background: #0e0e0e; padding: 15px; border-radius: 10px;
+      font-size: 0.95rem; line-height: 1.5em; white-space: pre-wrap; box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
     }
-
+    #input-area { display: flex; justify-content: space-between; margin-top: 16px; }
+    #item-input {
+      flex: 1; padding: 8px; border: none; border-radius: 8px; background: #1e1e1e; color: white; font-size: 1rem; outline: none;
+    }
+    #send-btn {
+      background: #3b82f6; color: white; border: none; border-radius: 8px; margin-left: 8px; padding: 8px 14px; cursor: pointer; transition: 0.3s;
+    }
+    #send-btn:hover { background: #60a5fa; }
+    #choices { margin-top: 18px; }
     .choice-btn {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      background: #2a2a2a;
-      color: #eee;
-      border: 1px solid #333;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      cursor: pointer;
-      text-align: left;
-      transition: background 0.2s, transform 0.1s;
+      display: block; width: 100%; padding: 10px; margin: 8px 0;
+      background: #2a2a2a; color: #eee; border: 1px solid #333; border-radius: 8px;
+      font-size: 0.95rem; cursor: pointer; text-align: left; transition: background 0.2s, transform 0.1s;
     }
-
-    .choice-btn:hover {
-      background: #3b3b3b;
-      transform: scale(1.02);
-    }
-
-    #input-area {
-      display: flex;
-      margin-top: 10px;
-      gap: 10px;
-    }
-
-    textarea {
-      flex: 1;
-      height: 100px;
-      background: #0f0f0f;
-      color: #eee;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 8px;
-    }
-
-    button {
-      background: #3b82f6;
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.95rem;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      background: #60a5fa;
+    .choice-btn:hover { background: #3b3b3b; transform: scale(1.01); }
+    @media (max-width: 600px) {
+      #game-container { padding: 12px; }
+      #item-input, #send-btn { font-size: 0.9rem; }
     }
   </style>
 </head>
 <body>
-  <h1>ESCAPE FROM TEXTCORP</h1>
-  <div id="container">
-    <div id="log">AI의 텍스트를 입력하고 “분석”을 눌러보세요.</div>
-    <div id="choices"></div>
+  <header>ESCAPE FROM TEXTCORP</header>
+  <div id="game-container">
+    <div id="stats">
+      <div class="label">체력</div>
+      <div class="bar"><div id="hp-bar" class="bar-fill" style="background: var(--hp-color); width: 100%;"></div></div>
+      <div class="label">허기</div>
+      <div class="bar"><div id="hunger-bar" class="bar-fill" style="background: var(--hunger-color); width: 100%;"></div></div>
+      <div class="label">맞춤스탯</div>
+      <div class="bar"><div id="custom-bar" class="bar-fill" style="background: var(--stat-color); width: 100%;"></div></div>
+      <div class="label">탈출상황</div>
+      <div class="bar"><div id="escape-bar" class="bar-fill" style="background: var(--escape-color); width: 0%;"></div></div>
+    </div>
+
+    <div id="log">🎮 감옥섬의 새벽 공기가 싸늘하다.<br>물건을 입력하세요 (10자 이내).</div>
 
     <div id="input-area">
-      <textarea id="aiText" placeholder="AI가 출력할 텍스트를 붙여넣으세요..."></textarea>
-      <button id="analyzeBtn">분석</button>
+      <input id="item-input" type="text" maxlength="10" placeholder="예: 권총, 마법지팡이..." />
+      <button id="send-btn">시작</button>
     </div>
+
+    <div id="choices"></div>
   </div>
 
   <script>
     const log = document.getElementById("log");
+    const inputArea = document.getElementById("input-area");
+    const itemInput = document.getElementById("item-input");
+    const sendBtn = document.getElementById("send-btn");
     const choices = document.getElementById("choices");
-    const aiText = document.getElementById("aiText");
-    const analyzeBtn = document.getElementById("analyzeBtn");
 
-    analyzeBtn.onclick = () => {
-      const text = aiText.value.trim();
-      if (!text) return alert("텍스트를 입력하세요.");
+    const hpBar = document.getElementById("hp-bar");
+    const hungerBar = document.getElementById("hunger-bar");
+    const customBar = document.getElementById("custom-bar");
+    const escapeBar = document.getElementById("escape-bar");
 
-      log.innerHTML = "";
+    let history = [];
+    let hiddenPrompt = "";
+
+    const appendLog = (text, sender = "ai") => {
+      const prefix = sender === "user" ? "🧍‍♂️ 당신: " : "🤖 AI: ";
+      log.innerHTML += `\n${prefix}${text}`;
+      log.scrollTop = log.scrollHeight;
+    };
+
+    const sendMessage = async (msg) => {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg, history }),
+      });
+      const data = await response.json();
+      const reply = data.reply || "(응답 없음)";
+      history.push({ role: "user", content: msg });
+      history.push({ role: "assistant", content: reply });
+      appendLog(reply, "ai");
+      handleAIResponse(reply);
+    };
+
+    // ✅ 선택지 라인만 추출 (1️⃣/2️⃣/3️⃣ 또는 1. 2. 3. / 1) 2) 3))
+    const extractChoices = (text) => {
+      const lines = text.split(/\r?\n/);
+      const results = [];
+      for (const raw of lines) {
+        const line = raw.trim();
+
+        // 이모지 숫자 (1️⃣ 2️⃣ 3️⃣)
+        let m = line.match(/^(1️⃣|2️⃣|3️⃣)\s*(.+)?$/);
+        if (m) {
+          results.push({ id: m[1], label: m[2]?.trim() || m[1] });
+          continue;
+        }
+        // 숫자. 형태 (1. 2. 3.)
+        m = line.match(/^([1-3])\.\s*(.+)$/);
+        if (m) {
+          results.push({ id: m[1] + "️⃣", label: m[2].trim() });
+          continue;
+        }
+        // 숫자) 형태 (1) 2) 3))
+        m = line.match(/^([1-3])\)\s*(.+)$/);
+        if (m) {
+          results.push({ id: m[1] + "️⃣", label: m[2].trim() });
+          continue;
+        }
+        // 동그라미 숫자 ①②③
+        m = line.match(/^([①②③])\s*(.+)$/);
+        if (m) {
+          const map = { "①": "1️⃣", "②": "2️⃣", "③": "3️⃣" };
+          results.push({ id: map[m[1]], label: m[2].trim() });
+          continue;
+        }
+      }
+      return results;
+    };
+
+    // 🔹 AI 응답 처리 (설명은 로그로, 버튼은 장소 선택지만)
+    const handleAIResponse = (text) => {
+      hiddenPrompt = text;
       choices.innerHTML = "";
+      updateStatsFromText(text);
 
-      const lines = text.split("\n");
-      lines.forEach(line => {
-        const clean = line.trim();
-        if (/^[1-3]️⃣/.test(clean)) {
-          // 선택지인 경우 버튼으로
+      const opts = extractChoices(text);
+      if (opts.length) {
+        opts.forEach(({ id, label }) => {
           const btn = document.createElement("button");
           btn.className = "choice-btn";
-          btn.textContent = clean;
-          btn.onclick = () => alert(`선택됨: ${clean}`);
+          // 버튼 텍스트는 “1️⃣ 장소명”처럼 짧게만
+          btn.textContent = `${id} ${label}`;
+          btn.onclick = () => {
+            appendLog(`${id} ${label}`, "user");
+            // 서버에는 간단한 선택 신호만 전달
+            sendMessage(`선택: ${id}`);
+          };
           choices.appendChild(btn);
-        } else if (clean) {
-          // 일반 서사로
-          log.innerHTML += clean + "\n";
+        });
+      }
+    };
+
+    // 🔹 텍스트에서 수치 자동 추출 → 게이지 업데이트
+    const updateStatsFromText = (text) => {
+      const hp = text.match(/체력[:：]?\s*(\d+)/);
+      const hunger = text.match(/허기[:：]?\s*(\d+)/);
+      const custom = text.match(/맞춤스탯[:：]?\s*([^\n]+)/);
+      const escape = text.match(/탈출\s*상황[:：]?\s*(\d+)/);
+
+      if (hp) hpBar.style.width = `${Math.min(100, parseInt(hp[1]))}%`;
+      if (hunger) hungerBar.style.width = `${Math.min(100, parseInt(hunger[1]))}%`;
+      if (escape) escapeBar.style.width = `${Math.min(100, parseInt(escape[1]))}%`;
+      if (custom) {
+        const val = custom[1].match(/(\d+)[/](\d+)/);
+        if (val) {
+          const percent = (parseInt(val[1]) / parseInt(val[2])) * 100;
+          customBar.style.width = `${Math.min(100, percent)}%`;
         }
-      });
+      }
+    };
+
+    // 🔹 시작
+    sendBtn.onclick = () => {
+      const item = itemInput.value.trim();
+      if (!item) return alert("아이템을 입력하세요!");
+      if (item.length > 10) return alert("10자 이내로 입력하세요.");
+      appendLog(item, "user");
+      sendMessage(`아이템으로 '${item}'을 선택합니다.`);
+      inputArea.style.display = "none";
     };
   </script>
 </body>
