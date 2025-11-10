@@ -5,66 +5,170 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESCAPE FROM TEXTCORP</title>
   <style>
+    :root {
+      --hp-color: #e63946;
+      --hunger-color: #ffb703;
+      --stat-color: #00b4d8;
+      --escape-color: #9d4edd;
+      --bg: #0a0a0a;
+      --panel: #121212;
+      --text: #d8dee9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background: #111;
-      color: #eee;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans KR", sans-serif;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
-      padding: 20px;
     }
+
+    header {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 24px 0;
+      color: #e0e0e0;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px #3b82f6;
+    }
+
     #game-container {
-      width: 100%;
-      max-width: 600px;
-      background: #1e1e1e;
-      border-radius: 16px;
-      box-shadow: 0 0 12px #000;
+      background: var(--panel);
+      width: 95%;
+      max-width: 700px;
       padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 0 16px rgba(0,0,0,0.7);
     }
-    #log {
-      max-height: 60vh;
-      overflow-y: auto;
-      white-space: pre-wrap;
+
+    #stats {
       margin-bottom: 20px;
     }
-    input, button {
-      font-size: 16px;
-      padding: 8px 12px;
-      border-radius: 8px;
+
+    .bar {
+      position: relative;
+      background: #333;
+      height: 18px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+
+    .bar-fill {
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+
+    .label {
+      font-size: 0.85rem;
+      margin-bottom: 2px;
+      opacity: 0.9;
+    }
+
+    #log {
+      max-height: 50vh;
+      overflow-y: auto;
+      background: #0e0e0e;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      line-height: 1.5em;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+    }
+
+    #input-area {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+
+    #item-input {
+      flex: 1;
+      padding: 8px;
       border: none;
+      border-radius: 8px;
+      background: #1e1e1e;
+      color: white;
+      font-size: 1rem;
       outline: none;
     }
-    #item-input { width: 70%; }
+
     #send-btn {
       background: #3b82f6;
       color: white;
+      border: none;
+      border-radius: 8px;
       margin-left: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: 0.3s;
     }
+
+    #send-btn:hover {
+      background: #60a5fa;
+    }
+
+    #choices {
+      margin-top: 18px;
+    }
+
     .choice-btn {
       display: block;
       width: 100%;
+      padding: 10px;
       margin: 8px 0;
-      background: #444;
-      color: white;
-      transition: 0.2s;
+      background: #2a2a2a;
+      color: #eee;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, transform 0.1s;
     }
-    .choice-btn:hover { background: #666; }
+
+    .choice-btn:hover {
+      background: #3b3b3b;
+      transform: scale(1.01);
+    }
+
     @media (max-width: 600px) {
-      #game-container { padding: 10px; }
-      input, button { width: 100%; margin: 5px 0; }
+      #game-container { padding: 12px; }
+      #item-input, #send-btn { font-size: 0.9rem; }
     }
   </style>
 </head>
 <body>
+  <header>ESCAPE FROM TEXTCORP</header>
   <div id="game-container">
-    <div id="log">🎮 ESCAPE FROM TEXTCORP<br>물건을 입력하세요 (10자 이내)</div>
+    <div id="stats">
+      <div class="label">체력</div>
+      <div class="bar"><div id="hp-bar" class="bar-fill" style="background: var(--hp-color); width: 100%;"></div></div>
+      <div class="label">허기</div>
+      <div class="bar"><div id="hunger-bar" class="bar-fill" style="background: var(--hunger-color); width: 100%;"></div></div>
+      <div class="label">맞춤스탯</div>
+      <div class="bar"><div id="custom-bar" class="bar-fill" style="background: var(--stat-color); width: 100%;"></div></div>
+      <div class="label">탈출상황</div>
+      <div class="bar"><div id="escape-bar" class="bar-fill" style="background: var(--escape-color); width: 0%;"></div></div>
+    </div>
+
+    <div id="log">🎮 감옥섬의 새벽 공기가 싸늘하다.<br>물건을 입력하세요 (10자 이내).</div>
+
     <div id="input-area">
       <input id="item-input" type="text" maxlength="10" placeholder="예: 권총, 마법지팡이..." />
       <button id="send-btn">시작</button>
     </div>
+
     <div id="choices"></div>
   </div>
 
@@ -74,8 +178,14 @@
     const itemInput = document.getElementById("item-input");
     const sendBtn = document.getElementById("send-btn");
     const choices = document.getElementById("choices");
+
+    const hpBar = document.getElementById("hp-bar");
+    const hungerBar = document.getElementById("hunger-bar");
+    const customBar = document.getElementById("custom-bar");
+    const escapeBar = document.getElementById("escape-bar");
+
     let history = [];
-    let hiddenPrompt = ""; // ← AI 통신용 내부 메시지 (사용자에게 안보임)
+    let hiddenPrompt = "";
 
     const appendLog = (text, sender = "ai") => {
       const prefix = sender === "user" ? "🧍‍♂️ 당신: " : "🤖 AI: ";
@@ -97,10 +207,12 @@
       handleAIResponse(reply);
     };
 
-    // 🔹 AI 응답을 분석해 선택지나 스탯을 HTML로 반영
+    // 🔹 AI 응답 처리
     const handleAIResponse = (text) => {
+      hiddenPrompt = text;
       choices.innerHTML = "";
-      hiddenPrompt = text; // 내부 저장
+      updateStatsFromText(text);
+
       const match = text.match(/1️⃣|2️⃣|3️⃣/g);
       if (match) {
         const parts = text.split(/(?=1️⃣|2️⃣|3️⃣)/g);
@@ -117,14 +229,33 @@
       }
     };
 
-    // 🔹 게임 시작
+    // 🔹 텍스트에서 수치 자동 추출 → 게이지 업데이트
+    const updateStatsFromText = (text) => {
+      const hp = text.match(/체력[:：]?\s*(\d+)/);
+      const hunger = text.match(/허기[:：]?\s*(\d+)/);
+      const custom = text.match(/맞춤스탯[:：]?\s*([^\n]+)/);
+      const escape = text.match(/탈출 상황[:：]?\s*(\d+)/);
+
+      if (hp) hpBar.style.width = `${Math.min(100, parseInt(hp[1]))}%`;
+      if (hunger) hungerBar.style.width = `${Math.min(100, parseInt(hunger[1]))}%`;
+      if (escape) escapeBar.style.width = `${Math.min(100, parseInt(escape[1]))}%`;
+      if (custom) {
+        const val = custom[1].match(/(\d+)[/](\d+)/);
+        if (val) {
+          const percent = (parseInt(val[1]) / parseInt(val[2])) * 100;
+          customBar.style.width = `${Math.min(100, percent)}%`;
+        }
+      }
+    };
+
+    // 🔹 시작
     sendBtn.onclick = () => {
       const item = itemInput.value.trim();
       if (!item) return alert("아이템을 입력하세요!");
       if (item.length > 10) return alert("10자 이내로 입력하세요.");
       appendLog(item, "user");
       sendMessage(`아이템으로 '${item}'을 선택합니다.`);
-      inputArea.style.display = "none"; // 입력창 비활성화
+      inputArea.style.display = "none";
     };
   </script>
 </body>
