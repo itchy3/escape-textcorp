@@ -32,10 +32,22 @@
       background: var(--panel); width: 95%; max-width: 700px;
       padding: 20px; border-radius: 16px; box-shadow: 0 0 16px rgba(0,0,0,0.7);
     }
-    #stats { margin-bottom: 20px; }
-    .bar { position: relative; background: #333; height: 18px; border-radius: 10px; overflow: hidden; margin: 6px 0; }
+    /* 처음에는 상태창 숨김 */
+    #stats { margin-bottom: 20px; display: none; }
+    .stat-row { margin-bottom: 10px; }
+    .label-line {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.85rem; margin-bottom: 2px; opacity: 0.9;
+    }
+    .bar { position: relative; background: #333; height: 18px; border-radius: 10px; overflow: hidden; }
     .bar-fill { height: 100%; transition: width 0.4s ease; }
-    .label { font-size: 0.85rem; margin-bottom: 2px; opacity: 0.9; }
+    /* 0%일 때도 바의 윤곽이 보이도록 얇은 인디케이터(배경으로 충분하지만 텍스트가 있어 명확) */
+    .bar-text {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; color: #ddd; pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
     #log {
       max-height: 50vh; overflow-y: auto; background: #0e0e0e; padding: 15px; border-radius: 10px;
       font-size: 0.95rem; line-height: 1.5em; white-space: pre-wrap; box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
@@ -65,14 +77,45 @@
   <header>ESCAPE FROM TEXTCORP</header>
   <div id="game-container">
     <div id="stats">
-      <div class="label">체력</div>
-      <div class="bar"><div id="hp-bar" class="bar-fill" style="background: var(--hp-color); width: 100%;"></div></div>
-      <div class="label">허기</div>
-      <div class="bar"><div id="hunger-bar" class="bar-fill" style="background: var(--hunger-color); width: 100%;"></div></div>
-      <div class="label" id="custom-label">맞춤스탯</div>
-      <div class="bar"><div id="custom-bar" class="bar-fill" style="background: var(--stat-color); width: 100%;"></div></div>
-      <div class="label">탈출상황</div>
-      <div class="bar"><div id="escape-bar" class="bar-fill" style="background: var(--escape-color); width: 0%;"></div></div>
+      <div class="stat-row">
+        <div class="label-line">
+          <div class="label">체력</div><div id="hp-text">—/100</div>
+        </div>
+        <div class="bar">
+          <div id="hp-bar" class="bar-fill" style="background: var(--hp-color); width: 0%;"></div>
+          <div class="bar-text"></div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="label-line">
+          <div class="label">허기</div><div id="hunger-text">—/100</div>
+        </div>
+        <div class="bar">
+          <div id="hunger-bar" class="bar-fill" style="background: var(--hunger-color); width: 0%;"></div>
+          <div class="bar-text"></div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="label-line">
+          <div id="custom-label" class="label">맞춤스탯</div><div id="custom-text">—/—</div>
+        </div>
+        <div class="bar">
+          <div id="custom-bar" class="bar-fill" style="background: var(--stat-color); width: 0%;"></div>
+          <div class="bar-text"></div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="label-line">
+          <div class="label">탈출상황</div><div id="escape-text">0%</div>
+        </div>
+        <div class="bar">
+          <div id="escape-bar" class="bar-fill" style="background: var(--escape-color); width: 0%;"></div>
+          <div class="bar-text"></div>
+        </div>
+      </div>
     </div>
 
     <div id="log">🎮 감옥섬의 새벽 공기가 싸늘하다.<br>물건을 입력하세요 (10자 이내).</div>
@@ -91,19 +134,18 @@
     const itemInput = document.getElementById("item-input");
     const sendBtn = document.getElementById("send-btn");
     const choices = document.getElementById("choices");
+    const statsEl = document.getElementById("stats");
 
     const hpBar = document.getElementById("hp-bar");
     const hungerBar = document.getElementById("hunger-bar");
     const customBar = document.getElementById("custom-bar");
     const escapeBar = document.getElementById("escape-bar");
 
-    // ✅ 상태 저장 (0~100 클램프, 맞춤스탯 동적명/단위)
-    const state = {
-      hp: 100,
-      hunger: 100,
-      escape: 0,
-      custom: { name: "맞춤스탯", curr: 100, max: 100, unit: "" }
-    };
+    const hpText = document.getElementById("hp-text");
+    const hungerText = document.getElementById("hunger-text");
+    const customText = document.getElementById("custom-text");
+    const escapeText = document.getElementById("escape-text");
+    const customLabel = document.getElementById("custom-label");
 
     let history = [];
     let hiddenPrompt = "";
@@ -118,4 +160,115 @@
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:
+        body: JSON.stringify({ message: msg, history }),
+      });
+      const data = await response.json();
+      const reply = data.reply || "(응답 없음)";
+      history.push({ role: "user", content: msg });
+      history.push({ role: "assistant", content: reply });
+      appendLog(reply, "ai");
+      handleAIResponse(reply);
+    };
+
+    // 선택지 추출
+    const extractChoices = (text) => {
+      const lines = text.split(/\r?\n/);
+      const results = [];
+      for (const raw of lines) {
+        const line = raw.trim();
+        let m = line.match(/^(1️⃣|2️⃣|3️⃣)\s*(.+)?$/);
+        if (m) { results.push({ id: m[1], label: m[2]?.trim() || m[1] }); continue; }
+        m = line.match(/^([1-3])\.\s*(.+)$/);
+        if (m) { results.push({ id: m[1] + "️⃣", label: m[2].trim() }); continue; }
+        m = line.match(/^([1-3])\)\s*(.+)$/);
+        if (m) { results.push({ id: m[1] + "️⃣", label: m[2].trim() }); continue; }
+        m = line.match(/^([①②③])\s*(.+)$/);
+        if (m) {
+          const map = { "①": "1️⃣", "②": "2️⃣", "③": "3️⃣" };
+          results.push({ id: map[m[1]], label: m[2].trim() });
+          continue;
+        }
+      }
+      return results;
+    };
+
+    // AI 응답 처리
+    const handleAIResponse = (text) => {
+      hiddenPrompt = text;
+      choices.innerHTML = "";
+      updateStatsFromText(text);
+
+      const opts = extractChoices(text);
+      if (opts.length) {
+        opts.forEach(({ id, label }) => {
+          const btn = document.createElement("button");
+          btn.className = "choice-btn";
+          btn.textContent = `${id} ${label}`;
+          btn.onclick = () => {
+            appendLog(`${id} ${label}`, "user");
+            sendMessage(`선택: ${id}`);
+          };
+          choices.appendChild(btn);
+        });
+      }
+    };
+
+    // 수치 업데이트 (0도 정확히 표시)
+    const updateBar = (barEl, textEl, value, max = 100, isPercent = false) => {
+      const v = Math.max(0, Math.min(max, Number.isFinite(value) ? value : 0));
+      const pct = isPercent ? v : (v / max) * 100;
+      barEl.style.width = `${pct}%`;
+      textEl.textContent = isPercent ? `${v}%` : `${v}/${max}`;
+      // 바 중앙 텍스트도 동일 표시
+      const overlay = barEl.parentElement.querySelector(".bar-text");
+      if (overlay) overlay.textContent = isPercent ? `${v}%` : `${v}/${max}`;
+    };
+
+    // 텍스트에서 수치 추출 → 게이지 & 숫자 동기화
+    const updateStatsFromText = (text) => {
+      // 맞춤스탯 라벨 이름까지 동적 추출 (예: "총알: 16/16" → 라벨 "총알")
+      // 우선 "맞춤스탯: ..." 패턴 우선, 없으면 "[한글/영문/숫자]+: A/B" 포맷을 탐색
+      const hp = text.match(/체력[:：]?\s*(\d+)/);
+      const hunger = text.match(/허기[:：]?\s*(\d+)/);
+      const custom = text.match(/맞춤\s*스탯|맞춤스탯|커스텀\s*스탯/i)
+        ? text.match(/맞춤\s*스탯[:：]?\s*([^\n]+)/i)
+        : null;
+      const genericCustom = custom ? null : text.match(/^\s*([가-힣A-Za-z0-9_]+)\s*[:：]\s*(\d+)\s*\/\s*(\d+)/m);
+      const escapeVal = text.match(/탈출\s*상황[:：]?\s*(\d+)/);
+
+      if (hp) updateBar(hpBar, hpText, parseInt(hp[1], 10), 100, false);
+      if (hunger) updateBar(hungerBar, hungerText, parseInt(hunger[1], 10), 100, false);
+
+      if (custom) {
+        const val = custom[1].match(/(\d+)\s*\/\s*(\d+)/);
+        if (val) {
+          customLabel.textContent = "맞춤스탯";
+          updateBar(customBar, customText, parseInt(val[1], 10), parseInt(val[2], 10), false);
+        }
+      } else if (genericCustom) {
+        const labelName = genericCustom[1];
+        const cur = parseInt(genericCustom[2], 10);
+        const max = parseInt(genericCustom[3], 10);
+        customLabel.textContent = labelName; // 동적으로 라벨 변경
+        updateBar(customBar, customText, cur, max, false);
+      }
+
+      if (escapeVal) updateBar(escapeBar, escapeText, parseInt(escapeVal[1], 10), 100, true);
+    };
+
+    // 시작
+    sendBtn.onclick = () => {
+      const item = itemInput.value.trim();
+      if (!item) return alert("아이템을 입력하세요!");
+      if (item.length > 10) return alert("10자 이내로 입력하세요.");
+      appendLog(item, "user");
+      sendMessage(`아이템으로 '${item}'을 선택합니다.`);
+
+      // 아이템 등록 직후 상태창 표시
+      statsEl.style.display = "block";
+      // 입력 영역 비활성화
+      inputArea.style.display = "none";
+    };
+  </script>
+</body>
+</html>
